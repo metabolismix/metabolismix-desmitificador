@@ -1,8 +1,0 @@
-{
-  "name": "desmitificador-backend",
-  "version": "1.0.0",
-  "description": "Función serverless para la app Desmitificador Científico",
-  "dependencies": {
-    "node-fetch": "^2.6.7"
-  }
-}
