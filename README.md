@@ -20,10 +20,7 @@ Instalación y Uso
 Este proyecto no requiere un proceso de instalación complejo. Al ser una aplicación autocontenida en un solo archivo, solo necesitas seguir estos pasos:
 
 Clonar o descargar el repositorio:
-
-git clone [https://github.com/tu-usuario/desmitificador-cientifico.git](https://github.com/tu-usuario/desmitificador-cientifico.git)
-
-O simplemente descarga los archivos index.html y README.md.
+simplemente descarga los archivos index.html y README.md.
 
 Abrir en el navegador:
 Navega hasta la carpeta del proyecto y abre el archivo index.html en tu navegador web preferido (Chrome, Firefox, Safari, etc.).
@@ -56,5 +53,6 @@ Dado que este proyecto se publica con todos los derechos reservados, no se acept
 
 Licencia y Copyright
 Copyright © 2024 [Tu Nombre Aquí]. Todos los derechos reservados.
+
 
 El código de este repositorio se proporciona únicamente con fines de demostración y educativos. No se concede permiso para usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y/o vender copias del Software sin el permiso explícito y por escrito del titular de los derechos de autor.
