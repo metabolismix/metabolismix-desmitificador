@@ -1,1 +1,363 @@
-<!DOCTYPE html><html lang="es"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Desmitificador Científico Express</title>    <script src="https://cdn.tailwindcss.com"></script>    <link rel="preconnect" href="https://fonts.googleapis.com">    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">    <style>        body {            font-family: 'Inter', sans-serif;        }        .carousel-track {            display: flex;            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);        }        .carousel-item {            flex: 0 0 100%;        }        .evidence-badge {            display: inline-block;            padding: 0.25rem 0.75rem;            border-radius: 9999px;            font-weight: 600;            font-size: 0.8rem;            text-transform: uppercase;            letter-spacing: 0.05em;        }        .evidence-alta { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }        .evidence-moderada { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }        .evidence-baja { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }        .btn-arrow:disabled {            opacity: 0.3;            cursor: not-allowed;        }        .loader {            border: 4px solid rgba(0,0,0,0.1);            border-top-color: #3b82f6;            border-radius: 50%;            width: 40px;            height: 40px;            animation: spin 1s linear infinite;        }        @keyframes spin {            to { transform: rotate(360deg); }        }        .fade-in {            animation: fadeIn 0.5s ease-out forwards;        }        @keyframes fadeIn {            from { opacity: 0; transform: translateY(10px); }            to { opacity: 1; transform: translateY(0); }        }        .form-container, .results-container {            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);        }    </style></head><body class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-gray-100">    <main class="w-full max-w-md mx-auto">        <header class="text-center mb-8 flex flex-col items-center">             <div class="bg-blue-100 p-3 rounded-full mb-4">                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>             </div>            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight">Desmitificador Científico</h1>            <p class="text-slate-500 mt-2 max-w-xs">Obtén respuestas claras y directas basadas en la evidencia científica actual.</p>        </header>        <!-- Input Form -->        <form id="myth-form" class="form-container bg-white p-6 rounded-2xl mb-8 border border-slate-200/80">            <label for="myth-input" class="block text-sm font-medium text-slate-700 mb-2">¿Es verdad que...?</label>            <textarea id="myth-input" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 placeholder-slate-400" placeholder="...la creatina daña los riñones?"></textarea>            <button type="submit" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:-translate-y-0.5">                Verificar Evidencia            </button>        </form>        <!-- Carousel and Results Section -->        <section id="results-section" class="relative">            <!-- Loader -->            <div id="loader" class="hidden absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center rounded-2xl z-20">                <div class="loader"></div>            </div>                        <!-- Carousel Container -->            <div id="carousel-container" class="results-container overflow-hidden rounded-2xl bg-white relative border border-slate-200/80">                 <div id="carousel-track" class="carousel-track">                     <!-- Cards will be injected here -->                 </div>            </div>            <!-- Initial State / Empty State -->             <div id="initial-state" class="results-container text-center p-10 bg-white rounded-2xl border border-slate-200/80">                <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />                </svg>                <h3 class="mt-4 text-lg font-medium text-slate-800">Esperando tu consulta</h3>                <p class="mt-1 text-sm text-slate-500">Los resultados de la verificación aparecerán aquí.</p>            </div>                         <!-- Navigation -->            <div id="navigation-controls" class="hidden justify-between items-center mt-4 px-2">                <button id="prev-btn" class="btn-arrow p-2 rounded-full bg-white shadow-md hover:bg-slate-100 transition-all disabled:opacity-50">                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>                </button>                <div id="card-counter" class="text-sm font-semibold text-slate-600 tracking-wider"></div>                <button id="next-btn" class="btn-arrow p-2 rounded-full bg-white shadow-md hover:bg-slate-100 transition-all disabled:opacity-50">                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>                </button>            </div>        </section>    </main>    <script>        const mythForm = document.getElementById('myth-form');        const mythInput = document.getElementById('myth-input');        const resultsSection = document.getElementById('results-section');        const carouselTrack = document.getElementById('carousel-track');        const carouselContainer = document.getElementById('carousel-container');        const initialState = document.getElementById('initial-state');        const navigationControls = document.getElementById('navigation-controls');        const prevBtn = document.getElementById('prev-btn');        const nextBtn = document.getElementById('next-btn');        const cardCounter = document.getElementById('card-counter');        const loader = document.getElementById('loader');        let cards = [];        let currentIndex = 0;                const API_KEY = ""; // Kept empty as per instructions.        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;        const systemPrompt = `Eres un verificador de datos de élite con acceso a la información científica más reciente hasta la fecha. Tu misión es responder como si acabaras de realizar una búsqueda exhaustiva en tiempo real de metaanálisis, revisiones sistemáticas y ensayos clínicos de alta calidad. Sintetiza el consenso científico actual sobre la afirmación proporcionada. Ignora información obsoleta. La rigurosidad y actualidad son críticas. Tu respuesta debe seguir estrictamente el formato JSON especificado.Analiza la afirmación: Evalúa si el mito es verdadero o falso.Proporciona una explicación: Resume la evidencia clave en 2-3 frases cortas. Utiliza un lenguaje claro y accesible para el público general.Clasifica la evidencia: Determina el nivel de evidencia científica que respalda tu conclusión ('Alta', 'Moderada', 'Baja').Alta: Respaldado por múltiples estudios de alta calidad (metaanálisis, revisiones sistemáticas, ensayos controlados aleatorizados grandes).Moderada: Respaldado por algunos ensayos controlados o estudios observacionales consistentes.Baja: Basado en estudios pequeños, contradictorios, anecdóticos o en mecanismos teóricos.`;const responseSchema = {type: "OBJECT",properties: {"myth": { "type": "STRING", "description": "La afirmación o mito original, reformulada de manera clara." },"isTrue": { "type": "BOOLEAN", "description": "True si la afirmación es verdadera, False si es falsa." },"explanation": { "type": "STRING", "description": "Explicación breve y clara de la evidencia." },"evidenceLevel": { "type": "STRING", "enum": ["Alta", "Moderada", "Baja"], "description": "Nivel de la evidencia científica." }},required: ["myth", "isTrue", "explanation", "evidenceLevel"]};async function fetchMythDebunk(userQuery) {loader.classList.remove('hidden');try {const payload = {contents: [{ parts: [{ text: userQuery }] }],systemInstruction: {parts: [{ text: systemPrompt }]},generationConfig: {responseMimeType: "application/json",responseSchema: responseSchema,},};      const response = await fetch(API_URL, {                    method: 'POST',                    headers: { 'Content-Type': 'application/json' },                    body: JSON.stringify(payload)                });                if (!response.ok) {                    throw new Error(`API error: ${response.status} ${response.statusText}`);                }                const result = await response.json();                                if (result.candidates && result.candidates.length > 0 &&                    result.candidates[0].content && result.candidates[0].content.parts &&                    result.candidates[0].content.parts.length > 0) {                        const jsonText = result.candidates[0].content.parts[0].text;                        return JSON.parse(jsonText);                } else {                    throw new Error("Respuesta de la API inválida o vacía.");                }            } catch (error) {                console.error('Error fetching data from Gemini API:', error);                // Return a user-friendly error card                return {                    myth: "Error al procesar la solicitud",                    isTrue: false,                    explanation: "Hubo un problema al contactar con el servicio de verificación. Por favor, inténtalo de nuevo más tarde.",                    evidenceLevel: "Baja"                };            } finally {                loader.classList.add('hidden');            }}mythForm.addEventListener('submit', async (e) => {e.preventDefault();const userQuery = mythInput.value.trim();if (!userQuery) return;  const newCardData = await fetchMythDebunk(userQuery);            if(newCardData) {                cards.push(newCardData);                currentIndex = cards.length - 1;                renderCarousel();            }            mythInput.value = '';});function renderCarousel() {if (cards.length === 0) {carouselContainer.classList.add('hidden');initialState.classList.remove('hidden');navigationControls.classList.add('hidden');return;}  carouselContainer.classList.remove('hidden');            initialState.classList.add('hidden');            navigationControls.classList.remove('hidden');            navigationControls.classList.add('flex');            carouselTrack.innerHTML = cards.map((card, index) => createCardHTML(card, index)).join('');                        const newCardElement = carouselTrack.lastElementChild;            if (newCardElement) {                newCardElement.classList.add('fade-in');            }            updateCarouselPosition();}function createCardHTML(cardData, index) {const verdictText = cardData.isTrue ? "VERDADERO" : "FALSO";const verdictColorClass = cardData.isTrue ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100";const verdictIcon = cardData.isTrue? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>`;  const evidenceClass = `evidence-${cardData.evidenceLevel.toLowerCase()}`;            return `                <div class="carousel-item w-full p-6 md:p-8">                    <div class="card h-full flex flex-col justify-between">                        <div>                            <p class="text-sm font-semibold text-slate-500 mb-2">Afirmación:</p>                            <h2 class="text-xl font-bold text-slate-800 mb-6 leading-tight">"${cardData.myth}"</h2>                                                        <div class="flex items-center text-base font-bold py-2 px-3 rounded-lg ${verdictColorClass} mb-4">                                ${verdictIcon}                                <span class="tracking-wider">${verdictText}</span>                            </div>                                                        <p class="text-slate-600 leading-relaxed text-base">${cardData.explanation}</p>                        </div>                        <div class="mt-8 pt-4 border-t border-slate-200">                             <p class="text-sm font-semibold text-slate-500 mb-2">Nivel de Evidencia:</p>                             <span class="evidence-badge ${evidenceClass}">${cardData.evidenceLevel}</span>                        </div>                    </div>                </div>            `;}function updateCarouselPosition() {const cardWidth = carouselContainer.offsetWidth;carouselTrack.style.transform = `translateX(-${currentIndex * cardWidth}px)`;updateNavigation();}function updateNavigation() {prevBtn.disabled = currentIndex === 0;nextBtn.disabled = currentIndex === cards.length - 1;cardCounter.textContent = `${currentIndex + 1} / ${cards.length}`;}prevBtn.addEventListener('click', () => {if (currentIndex > 0) {currentIndex--;updateCarouselPosition();}});nextBtn.addEventListener('click', () => {if (currentIndex < cards.length - 1) {currentIndex++;updateCarouselPosition();}});window.addEventListener('resize', () => {if (cards.length > 0) updateCarouselPosition();});// Initial setuprenderCarousel();</script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desmitificador Científico Express</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .carousel-item {
+            flex: 0 0 100%;
+        }
+        .evidence-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .evidence-alta { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .evidence-moderada { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .evidence-baja { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .btn-arrow:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .loader {
+            border: 4px solid rgba(0,0,0,0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .form-container, .results-container {
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-gray-100">
+
+    <!-- API Key Modal -->
+    <div id="api-key-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full m-4">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4">Se requiere una clave API</h2>
+            <p class="text-slate-600 mb-4">Para usar esta aplicación en un sitio público, necesitas tu propia clave API de Google Gemini.</p>
+            <p class="text-xs text-slate-500 mb-6">Tu clave se guardará de forma segura en tu navegador y no se compartirá con nadie.</p>
+            <form id="api-key-form">
+                <label for="api-key-input" class="block text-sm font-medium text-slate-700 mb-2">Tu clave API de Gemini</label>
+                <input type="password" id="api-key-input" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Pega tu clave aquí" required>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-blue-600 hover:underline mt-2 inline-block">¿Cómo obtener una clave?</a>
+                <button type="submit" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">Guardar y Empezar</button>
+            </form>
+        </div>
+    </div>
+
+    <main class="w-full max-w-md mx-auto">
+        <header class="text-center mb-8 flex flex-col items-center">
+             <div class="bg-blue-100 p-3 rounded-full mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+             </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight">Desmitificador Científico</h1>
+            <p class="text-slate-500 mt-2 max-w-xs">Obtén respuestas claras y directas basadas en la evidencia científica actual.</p>
+            <button id="change-key-btn" class="text-xs text-blue-600 hover:underline mt-2">Cambiar Clave API</button>
+        </header>
+
+        <!-- Input Form -->
+        <form id="myth-form" class="form-container bg-white p-6 rounded-2xl mb-8 border border-slate-200/80">
+            <label for="myth-input" class="block text-sm font-medium text-slate-700 mb-2">¿Es verdad que...?</label>
+            <textarea id="myth-input" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 placeholder-slate-400" placeholder="...la creatina daña los riñones?"></textarea>
+            <button type="submit" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:-translate-y-0.5">
+                Verificar Evidencia
+            </button>
+        </form>
+
+        <!-- Carousel and Results Section -->
+        <section id="results-section" class="relative">
+            <!-- Loader -->
+            <div id="loader" class="hidden absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center rounded-2xl z-20">
+                <div class="loader"></div>
+            </div>
+            
+            <!-- Carousel Container -->
+            <div id="carousel-container" class="results-container overflow-hidden rounded-2xl bg-white relative border border-slate-200/80">
+                 <div id="carousel-track" class="carousel-track">
+                     <!-- Cards will be injected here -->
+                 </div>
+            </div>
+
+            <!-- Initial State / Empty State -->
+             <div id="initial-state" class="results-container text-center p-10 bg-white rounded-2xl border border-slate-200/80">
+                <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <h3 class="mt-4 text-lg font-medium text-slate-800">Esperando tu consulta</h3>
+                <p class="mt-1 text-sm text-slate-500">Los resultados de la verificación aparecerán aquí.</p>
+            </div>
+             
+            <!-- Navigation -->
+            <div id="navigation-controls" class="hidden justify-between items-center mt-4 px-2">
+                <button id="prev-btn" class="btn-arrow p-2 rounded-full bg-white shadow-md hover:bg-slate-100 transition-all disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <div id="card-counter" class="text-sm font-semibold text-slate-600 tracking-wider"></div>
+                <button id="next-btn" class="btn-arrow p-2 rounded-full bg-white shadow-md hover:bg-slate-100 transition-all disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const mythForm = document.getElementById('myth-form');
+        const mythInput = document.getElementById('myth-input');
+        const resultsSection = document.getElementById('results-section');
+        const carouselTrack = document.getElementById('carousel-track');
+        const carouselContainer = document.getElementById('carousel-container');
+        const initialState = document.getElementById('initial-state');
+        const navigationControls = document.getElementById('navigation-controls');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const cardCounter = document.getElementById('card-counter');
+        const loader = document.getElementById('loader');
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyForm = document.getElementById('api-key-form');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const changeKeyBtn = document.getElementById('change-key-btn');
+
+        let cards = [];
+        let currentIndex = 0;
+        let userApiKey = '';
+        
+        const systemPrompt = `Eres un verificador de datos de élite con acceso a la información científica más reciente hasta la fecha. Tu misión es responder como si acabaras de realizar una búsqueda exhaustiva en tiempo real de metaanálisis, revisiones sistemáticas y ensayos clínicos de alta calidad. Sintetiza el consenso científico actual sobre la afirmación proporcionada. Ignora información obsoleta. La rigurosidad y actualidad son críticas. Tu respuesta debe seguir estrictamente el formato JSON especificado.
+1.  **Analiza la afirmación:** Evalúa si el mito es verdadero o falso.
+2.  **Proporciona una explicación:** Resume la evidencia clave en 2-3 frases cortas. Utiliza un lenguaje claro y accesible para el público general.
+3.  **Clasifica la evidencia:** Determina el nivel de evidencia científica que respalda tu conclusión ('Alta', 'Moderada', 'Baja').
+    * **Alta:** Respaldado por múltiples estudios de alta calidad (metaanálisis, revisiones sistemáticas, ensayos controlados aleatorizados grandes).
+    * **Moderada:** Respaldado por algunos ensayos controlados o estudios observacionales consistentes.
+    * **Baja:** Basado en estudios pequeños, contradictorios, anecdóticos o en mecanismos teóricos.`;
+        
+        const responseSchema = {
+            type: "OBJECT",
+            properties: {
+                "myth": { "type": "STRING", "description": "La afirmación o mito original, reformulada de manera clara." },
+                "isTrue": { "type": "BOOLEAN", "description": "True si la afirmación es verdadera, False si es falsa." },
+                "explanation": { "type": "STRING", "description": "Explicación breve y clara de la evidencia." },
+                "evidenceLevel": { "type": "STRING", "enum": ["Alta", "Moderada", "Baja"], "description": "Nivel de la evidencia científica." }
+            },
+            required: ["myth", "isTrue", "explanation", "evidenceLevel"]
+        };
+
+        function checkApiKey() {
+            userApiKey = localStorage.getItem('geminiApiKey');
+            if (!userApiKey) {
+                apiKeyModal.classList.remove('hidden');
+            } else {
+                apiKeyModal.classList.add('hidden');
+            }
+        }
+
+        apiKeyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('geminiApiKey', key);
+                checkApiKey();
+            }
+        });
+        
+        changeKeyBtn.addEventListener('click', () => {
+            localStorage.removeItem('geminiApiKey');
+            apiKeyInput.value = '';
+            checkApiKey();
+        });
+
+        async function fetchMythDebunk(userQuery) {
+            if (!userApiKey) {
+                checkApiKey();
+                return {
+                    myth: "Clave API no configurada",
+                    isTrue: false,
+                    explanation: "Por favor, introduce tu clave API de Google Gemini para poder realizar consultas.",
+                    evidenceLevel: "Baja"
+                };
+            }
+
+            loader.classList.remove('hidden');
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
+            
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: responseSchema,
+                    },
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                        const jsonText = result.candidates[0].content.parts[0].text;
+                        return JSON.parse(jsonText);
+                } else {
+                    throw new Error("Respuesta de la API inválida o vacía.");
+                }
+
+            } catch (error) {
+                console.error('Error fetching data from Gemini API:', error);
+                return {
+                    myth: "Error al procesar la solicitud",
+                    isTrue: false,
+                    explanation: "Hubo un problema al contactar con el servicio. Verifica que tu clave API sea correcta o inténtalo de nuevo más tarde.",
+                    evidenceLevel: "Baja"
+                };
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        mythForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userQuery = mythInput.value.trim();
+            if (!userQuery) return;
+            
+            const newCardData = await fetchMythDebunk(userQuery);
+            if(newCardData) {
+                cards.push(newCardData);
+                currentIndex = cards.length - 1;
+                renderCarousel();
+            }
+            mythInput.value = '';
+        });
+        
+        function renderCarousel() {
+            if (cards.length === 0) {
+                carouselContainer.classList.add('hidden');
+                initialState.classList.remove('hidden');
+                navigationControls.classList.add('hidden');
+                return;
+            }
+
+            carouselContainer.classList.remove('hidden');
+            initialState.classList.add('hidden');
+            navigationControls.classList.remove('hidden');
+            navigationControls.classList.add('flex');
+
+            carouselTrack.innerHTML = cards.map((card, index) => createCardHTML(card, index)).join('');
+            
+            const newCardElement = carouselTrack.lastElementChild;
+            if (newCardElement) {
+                newCardElement.classList.add('fade-in');
+            }
+
+            updateCarouselPosition();
+        }
+
+        function createCardHTML(cardData, index) {
+            const verdictText = cardData.isTrue ? "VERDADERO" : "FALSO";
+            const verdictColorClass = cardData.isTrue ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100";
+            const verdictIcon = cardData.isTrue 
+                ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>` 
+                : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>`;
+
+            const evidenceClass = `evidence-${cardData.evidenceLevel.toLowerCase()}`;
+
+            return `
+                <div class="carousel-item w-full p-6 md:p-8">
+                    <div class="card h-full flex flex-col justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 mb-2">Afirmación:</p>
+                            <h2 class="text-xl font-bold text-slate-800 mb-6 leading-tight">"${cardData.myth}"</h2>
+                            
+                            <div class="flex items-center text-base font-bold py-2 px-3 rounded-lg ${verdictColorClass} mb-4">
+                                ${verdictIcon}
+                                <span class="tracking-wider">${verdictText}</span>
+                            </div>
+                            
+                            <p class="text-slate-600 leading-relaxed text-base">${cardData.explanation}</p>
+                        </div>
+                        <div class="mt-8 pt-4 border-t border-slate-200">
+                             <p class="text-sm font-semibold text-slate-500 mb-2">Nivel de Evidencia:</p>
+                             <span class="evidence-badge ${evidenceClass}">${cardData.evidenceLevel}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateCarouselPosition() {
+            const cardWidth = carouselContainer.offsetWidth;
+            carouselTrack.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === cards.length - 1;
+            cardCounter.textContent = `${currentIndex + 1} / ${cards.length}`;
+        }
+        
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCarouselPosition();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < cards.length - 1) {
+                currentIndex++;
+                updateCarouselPosition();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+             if (cards.length > 0) updateCarouselPosition();
+        });
+        
+        // Initial setup
+        checkApiKey();
+        renderCarousel();
+
+    </script>
+</body>
+</html>
