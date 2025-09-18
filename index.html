@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desmitificador Científico Express</title>
+    <title>Mitobot MMX - Desmitificador Científico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
         .evidence-alta { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
         .evidence-moderada { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
         .evidence-baja { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .btn-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-arrow:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; }
         .loader { border: 4px solid rgba(0,0,0,0.1); border-top-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
@@ -39,7 +39,8 @@
         <form id="myth-form" class="form-container bg-white p-6 rounded-2xl mb-8 border border-slate-200/80">
             <label for="myth-input" class="block text-sm font-medium text-slate-700 mb-2">¿Es verdad que...?</label>
             <textarea id="myth-input" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 placeholder-slate-400" placeholder="...la creatina daña los riñones?"></textarea>
-            <button type="submit" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:-translate-y-0.5">
+            <p id="error-message" class="text-red-600 text-sm mt-2 font-medium"></p>
+            <button id="submit-btn" type="submit" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:-translate-y-0.5">
                 Verificar Evidencia
             </button>
         </form>
@@ -68,12 +69,14 @@
                 </button>
             </div>
         </section>
-
     </main>
 
     <script>
+        // DOM Elements
         const mythForm = document.getElementById('myth-form');
         const mythInput = document.getElementById('myth-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const errorMessage = document.getElementById('error-message');
         const carouselTrack = document.getElementById('carousel-track');
         const carouselContainer = document.getElementById('carousel-container');
         const initialState = document.getElementById('initial-state');
@@ -83,8 +86,69 @@
         const cardCounter = document.getElementById('card-counter');
         const loader = document.getElementById('loader');
 
+        // State
         let cards = [];
         let currentIndex = 0;
+        const USAGE_LIMIT = 3;
+        const COOLDOWN_SECONDS = 5;
+
+        // --- Rate Limiting and Cooldown Logic ---
+
+        function getUsageData() {
+            const data = localStorage.getItem('mitobotUsage');
+            if (!data) return { count: 0, date: new Date().toISOString().slice(0, 10) };
+            return JSON.parse(data);
+        }
+
+        function setUsageData(data) {
+            localStorage.setItem('mitobotUsage', JSON.stringify(data));
+        }
+
+        function checkUsage() {
+            let usage = getUsageData();
+            const today = new Date().toISOString().slice(0, 10);
+
+            if (usage.date !== today) {
+                // It's a new day, reset the counter
+                usage = { count: 0, date: today };
+                setUsageData(usage);
+            }
+
+            if (usage.count >= USAGE_LIMIT) {
+                showError(`Has alcanzado el límite de ${USAGE_LIMIT} consultas diarias. Vuelve mañana.`);
+                return false;
+            }
+            return true;
+        }
+
+        function recordUsage() {
+            let usage = getUsageData();
+            usage.count++;
+            setUsageData(usage);
+        }
+        
+        function startCooldown() {
+            submitBtn.disabled = true;
+            let secondsLeft = COOLDOWN_SECONDS;
+            submitBtn.textContent = `Espera ${secondsLeft}s...`;
+            
+            const interval = setInterval(() => {
+                secondsLeft--;
+                submitBtn.textContent = `Espera ${secondsLeft}s...`;
+                if (secondsLeft <= 0) {
+                    clearInterval(interval);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Verificar Evidencia';
+                }
+            }, 1000);
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            setTimeout(() => { errorMessage.textContent = ''; }, 4000);
+        }
+
+        // --- Backend Communication ---
 
         async function fetchMythDebunk(userQuery) {
             loader.classList.remove('hidden');
@@ -98,46 +162,37 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Error en el servidor: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Error en el servidor: ${response.status}`);
                 }
-
-                const result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                        const jsonText = result.candidates[0].content.parts[0].text;
-                        return JSON.parse(jsonText);
-                } else {
-                   // Esto puede ocurrir si la respuesta de la API es válida pero está vacía o bloqueada por seguridad.
-                   const safetyFeedback = result.promptFeedback;
-                   let explanation = "La respuesta de la API no tuvo el formato esperado o estaba vacía.";
-                   if (safetyFeedback) {
-                       explanation = `La solicitud fue bloqueada por razones de seguridad: ${safetyFeedback.blockReason}.`;
-                   }
-                   throw new Error(explanation);
-                }
+                
+                return await response.json();
 
             } catch (error) {
                 console.error('Error al contactar el backend:', error);
-                return {
-                    myth: "Error al procesar la solicitud",
-                    isTrue: false,
-                    explanation: error.message || "Hubo un problema al contactar con el servicio de verificación. Por favor, inténtalo de nuevo más tarde.",
-                    evidenceLevel: "Baja"
-                };
+                showError(error.message);
+                return null;
             } finally {
                 loader.classList.add('hidden');
             }
         }
 
+        // --- Form Submission ---
+
         mythForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            errorMessage.textContent = '';
+            
+            if (!checkUsage()) return;
+
             const userQuery = mythInput.value.trim();
             if (!userQuery) return;
             
+            startCooldown();
             const newCardData = await fetchMythDebunk(userQuery);
+            
             if(newCardData) {
+                recordUsage();
                 cards.push(newCardData);
                 currentIndex = cards.length - 1;
                 renderCarousel();
@@ -145,6 +200,8 @@
             mythInput.value = '';
         });
         
+        // --- Carousel Rendering and Logic ---
+
         function renderCarousel() {
             if (cards.length === 0) {
                 carouselContainer.classList.add('hidden');
@@ -165,8 +222,8 @@
         function createCardHTML(cardData) {
             const verdictText = cardData.isTrue ? "VERDADERO" : "FALSO";
             const verdictColorClass = cardData.isTrue ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100";
-            const verdictIcon = cardData.isTrue 
-                ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>` 
+            const verdictIcon = cardData.isTrue
+                ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`
                 : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>`;
             const evidenceClass = `evidence-${String(cardData.evidenceLevel).toLowerCase()}`;
             return `<div class="carousel-item w-full p-6 md:p-8"><div class="card h-full flex flex-col justify-between"><div><p class="text-sm font-semibold text-slate-500 mb-2">Afirmación:</p><h2 class="text-xl font-bold text-slate-800 mb-6 leading-tight">"${cardData.myth}"</h2><div class="flex items-center text-base font-bold py-2 px-3 rounded-lg ${verdictColorClass} mb-4">${verdictIcon}<span class="tracking-wider">${verdictText}</span></div><p class="text-slate-600 leading-relaxed text-base">${cardData.explanation}</p></div><div class="mt-8 pt-4 border-t border-slate-200"><p class="text-sm font-semibold text-slate-500 mb-2">Nivel de Evidencia:</p><span class="evidence-badge ${evidenceClass}">${cardData.evidenceLevel}</span></div></div></div>`;
@@ -184,14 +241,13 @@
             cardCounter.textContent = `${currentIndex + 1} / ${cards.length}`;
         }
         
+        // Event Listeners for Navigation
         prevBtn.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; updateCarouselPosition(); } });
         nextBtn.addEventListener('click', () => { if (currentIndex < cards.length - 1) { currentIndex++; updateCarouselPosition(); } });
         window.addEventListener('resize', () => { if (cards.length > 0) updateCarouselPosition(); });
         
+        // Initial Render
         renderCarousel();
     </script>
 </body>
 </html>
-
-
-
