@@ -29,10 +29,11 @@
     <main class="w-full max-w-md mx-auto">
         <header class="text-center mb-8 flex flex-col items-center">
              <div class="bg-blue-100 p-3 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
              </div>
-            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight">Desmitificador Científico</h1>
-            <p class="text-slate-500 mt-2 max-w-xs">Obtén respuestas claras y directas basadas en la evidencia científica actual.</p>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-blue-600 tracking-tight">Mitobot MMX</h1>
+            <h2 class="text-xl font-bold text-slate-800 mt-2">Desmitificador Científico</h2>
+            <p class="text-slate-500 mt-1 max-w-xs">Obtén respuestas claras y directas basadas en la evidencia científica actual.</p>
         </header>
 
         <form id="myth-form" class="form-container bg-white p-6 rounded-2xl mb-8 border border-slate-200/80">
@@ -108,13 +109,13 @@
                         const jsonText = result.candidates[0].content.parts[0].text;
                         return JSON.parse(jsonText);
                 } else {
-                     // Esto puede ocurrir si la respuesta de la API es válida pero está vacía o bloqueada por seguridad.
-                    const safetyFeedback = result.promptFeedback;
-                    let explanation = "La respuesta de la API no tuvo el formato esperado o estaba vacía.";
-                    if (safetyFeedback) {
-                        explanation = `La solicitud fue bloqueada por razones de seguridad: ${safetyFeedback.blockReason}.`;
-                    }
-                    throw new Error(explanation);
+                   // Esto puede ocurrir si la respuesta de la API es válida pero está vacía o bloqueada por seguridad.
+                   const safetyFeedback = result.promptFeedback;
+                   let explanation = "La respuesta de la API no tuvo el formato esperado o estaba vacía.";
+                   if (safetyFeedback) {
+                       explanation = `La solicitud fue bloqueada por razones de seguridad: ${safetyFeedback.blockReason}.`;
+                   }
+                   throw new Error(explanation);
                 }
 
             } catch (error) {
@@ -191,4 +192,6 @@
     </script>
 </body>
 </html>
+
+
 
